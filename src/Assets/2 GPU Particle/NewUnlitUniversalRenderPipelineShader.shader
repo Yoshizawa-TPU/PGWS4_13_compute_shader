@@ -1,11 +1,5 @@
-Shader "Custom/NewUnlitUniversalRenderPipelineShader"
+Shader "Custom/ParticleUnlitUniversalRenderPipelineShader"
 {
-    Properties
-    {
-        [MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
-        [MainTexture] _BaseMap("Base Map", 2D) = "white"
-    }
-
     SubShader
     {
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
@@ -19,18 +13,6 @@ Shader "Custom/NewUnlitUniversalRenderPipelineShader"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct Varyings
-            {
-                float4 positionHCS : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
             struct Particle
             {
                 float3 Position;
@@ -38,51 +20,28 @@ Shader "Custom/NewUnlitUniversalRenderPipelineShader"
                 float3 Color;
             };
 
-            struct Veryings
+            struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
-                half3 color :COLORO;
+                half3 color : COLOR0;
             };
 
-            uniform StructuredBuffer<Particle> Packages;
-            
-            Varyings vert(uint id : SV_VertexID)
+            uniform StructuredBuffer<Particle> Particles;
+
+           Varyings vert(uint id : SV_VertexID)
             {
                 Varyings OUT;
-                Particle.particle = Particles[id];
+
+                Particle particle = Particles[id];
                 OUT.positionHCS = TransformObjectToHClip(particle.Position);
 
                 OUT.color = particle.Color;
                 return OUT;
             }
 
-            half4 fragg(Varyings IN) : SV_Target
-            {
-                return half4(IN.color,1);
-                }
-
-
-            TEXTURE2D(_BaseMap);
-            SAMPLER(sampler_BaseMap);
-
-            CBUFFER_START(UnityPerMaterial)
-                half4 _BaseColor;
-                float4 _BaseMap_ST;
-            CBUFFER_END
-
-            Varyings vert(Attributes IN)
-            {
-                Varyings OUT;
-                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
-                return OUT;
-            }
-
             half4 frag(Varyings IN) : SV_Target
             {
-                 return half4(IN.color,1);
-                // half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv) * _BaseColor;
-                // return color;
+                return half4(IN.color, 1);
             }
             ENDHLSL
         }

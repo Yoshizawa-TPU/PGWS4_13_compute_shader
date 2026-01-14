@@ -525,7 +525,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ppp
   material: {fileID: 2100000, guid: 9ccc642e1b4677b4ba10f5947be31fff, type: 2}
-  compute: {fileID: 7200000, guid: 86054d8989e2bf84580700adc963501e, type: 3}
+  computeShader: {fileID: 7200000, guid: 86054d8989e2bf84580700adc963501e, type: 3}
 --- !u!4 &1750882077
 Transform:
   m_ObjectHideFlags: 0

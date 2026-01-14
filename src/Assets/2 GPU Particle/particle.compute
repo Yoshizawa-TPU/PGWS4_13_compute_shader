@@ -1,26 +1,24 @@
-// Each #kernel tells which function to compile; you can have many kernels
+﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 #pragma kernel CSInitialize
 #pragma kernel CSUpdate
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-RWTexture2D<float4> Result;
-
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+struct Particle
 {
-    // TODO: insert actual code here!
+    float3 position;
+    float3 velocity;
+    float3 color;
+};
 
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
-}
+RWStructuredBuffer<Particle> Particles;
+float deltaTime;
 
 float fihash_orig(float2 v)
 {
     uint2 u = asint(v * float2(141421356, 2718281828));
-    return float((u.x ^ u.y) * 3141592653) * 2.3283064356386962890525e-10;
+    return float((u.x ^ u.y) * 3141592653) * 2.3283064365386962890625e-10;
 }
-
+  
 float2 rand2(float2 st)
 {
     return float2(fihash_orig(st), fihash_orig(st + 1));
@@ -31,54 +29,48 @@ float3 rand3(float2 st)
     return float3(fihash_orig(st), fihash_orig(st + 1), fihash_orig(st + 2));
 }
 
-struct Particle
-{
-    float3 position;
-    float3 velocity;
-    float3 color;
-};
-
-RWStructuredBuffer<Particle> Particles;
-float deltatime;
-
 void reset(uint id)
 {
-    float2 seed = float2((1.0 / 256.0) * (float) (id % 256), (1.0 / 256.0) * (float) ((id / 256) % 256));
+    float2 seed = float2((1.0 / 256.0) * (float) (id % 256),(1.0 / 256.0) * (float) ((id / 256) % 256));
+
     float2 r2 = rand2(seed);
-    Particles[id].position = float3(cos(r2.x * 2.0 * 3.14159265) * r2 * 0.3, 2.0, sin(r2.x * 2.0 * 3.14159265) * r2.y * 0.3);
+    Particles[id].position = float3(cos(r2.x * 2.0 * 3.14159265) * r2.y * 0.3,2.0,sin(r2.x * 2.0 * 3.14159265) * r2.y * 0.3);
 
     float3 r3 = rand3(seed + 10);
-    Particles[id].position = float3(
-                                    5 * (r3.x + 0.01) * sin(r3.y * 3.14159265) * cos(r3.z * 2.0 * 3.14159265),
-                                    5 * (r3.x + 0.01) * sin(r3.y * 3.14159265) * sin(r3.z * 2.0 * 3.14159265),
-                                    5 * (r3.x + 0.01) * cos(r3.y * 3.14159265));
+    Particles[id].velocity = float3(5 * (r3.x + 0.01) * sin(r3.y * 3.14159265) * cos(r3.z * 2.0 * 3.14159265),5 * (r3.x + 0.01) * sin(r3.y * 3.14159265) * sin(r3.z * 2.0 * 3.14159265),5 * (r3.x + 0.01) * cos(r3.y * 3.14159265));
     
     Particles[id].color = rand3(seed + 20);
 }
 
-#define THESD_NM 64
-    
-[numthreads(THESD_NM, 1, 1)]
-    void CSInitialze(uint3 id : SV_DispatchThreadID)
+#define THREAD_NUM 64
+
+[numthreads(THREAD_NUM, 1, 1)]
+void CSInitialize(uint3 id : SV_DispatchThreadID)
+{
+    reset(id.x);
+}
+
+[numthreads(THREAD_NUM, 1, 1)]
+void CSUpdate(uint3 id : SV_DispatchThreadID)
 {
     float3 position = Particles[id.x].position;
     float3 velocity = Particles[id.x].velocity;
-    if(dot(velocity,velocity)<0.001)
+
+    if (dot(velocity, velocity) < 0.001)
     {
         reset(id.x);
         return;
     }
-    if(position.y<0.0)
+
+    if (position.y < 0.0)
     {
         velocity.y = -0.6 * velocity.y;
     }
-    
-    position += velocity * deltatime;
-    velocity.y -= 9.8 * deltatime;
+
+    position += velocity * deltaTime;
+    velocity.y -= 9.8 * deltaTime;
     velocity *= 0.995;
-    
+
     Particles[id.x].position = position;
     Particles[id.x].velocity = velocity;
-    
 }
-
